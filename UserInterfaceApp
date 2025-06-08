@@ -1,85 +1,98 @@
+import javafx.application.Application;
+import javafx.stage.Stage;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.geometry.Insets;
+import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 
-import java.awt.*;
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Random;
-import javax.swing.*;
 
-public class UserInterfaceApp {
+public class UserInterfaceAppFX extends Application {
+
+    private TextArea textArea;
+    private BorderPane root;
 
     public static void main(String[] args) {
-        JFrame frame = new JFrame("User Interface Application");
-        frame.setSize(600, 400);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(new BorderLayout());
+        launch(args);
+    }
 
-        JTextArea textArea = new JTextArea();
-        JScrollPane scrollPane = new JScrollPane(textArea);
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("User Interface Application (JavaFX)");
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        root = new BorderPane();
 
-        JButton btnDateTime = new JButton("Show Date & Time");
-        JButton btnSave = new JButton("Save to log.txt");
-        JButton btnColor = new JButton("Change Background");
-        JButton btnExit = new JButton("Exit");
+        textArea = new TextArea();
+        textArea.setWrapText(true);
+        root.setCenter(textArea);
 
-        buttonPanel.add(btnDateTime);
-        buttonPanel.add(btnSave);
-        buttonPanel.add(btnColor);
-        buttonPanel.add(btnExit);
+        HBox buttonBar = createButtonBar(primaryStage);
+        root.setTop(buttonBar);
 
-        Font buttonFont = new Font("Segoe UI", Font.PLAIN, 14);
-        for (Component c : buttonPanel.getComponents()) {
-            if (c instanceof JButton) {
-                JButton b = (JButton) c;
-                b.setFocusPainted(false);
-                b.setFont(buttonFont);
+        Scene scene = new Scene(root, 600, 400);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    private HBox createButtonBar(Stage stage) {
+        Button btnDateTime = new Button("Show Date & Time");
+        Button btnSave = new Button("Save to log.txt");
+        Button btnColor = new Button("Change Background");
+        Button btnExit = new Button("Exit");
+
+        btnDateTime.setOnAction(e -> showDateTime());
+        btnSave.setOnAction(e -> saveToFile(stage));
+        btnColor.setOnAction(e -> changeBackground());
+        btnExit.setOnAction(e -> stage.close());
+
+        HBox buttonBar = new HBox(10, btnDateTime, btnSave, btnColor, btnExit);
+        buttonBar.setPadding(new Insets(10));
+        return buttonBar;
+    }
+
+    private void showDateTime() {
+        String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        textArea.appendText("Current Date and Time: " + dateTime + "\n");
+    }
+
+    private void saveToFile(Stage stage) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Log File");
+        fileChooser.setInitialFileName("log.txt");
+
+        File file = fileChooser.showSaveDialog(stage);
+        if (file != null) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+                writer.write(textArea.getText());
+                textArea.appendText("Saved to: " + file.getAbsolutePath() + "\n");
+            } catch (IOException e) {
+                showAlert("File Error", "Error saving file:\n" + e.getMessage());
             }
         }
+    }
 
-        btnDateTime.addActionListener(e -> {
-            String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            textArea.append("Current Date and Time: " + dateTime + "\n");
-        });
+    private void changeBackground() {
+        Random rand = new Random();
+        int green = 100 + rand.nextInt(156);
+        int red = rand.nextInt(80);
+        int blue = rand.nextInt(80);
+        Color fxGreen = Color.rgb(red, green, blue);
 
-        btnSave.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Save log file");
+        root.setBackground(new Background(new BackgroundFill(fxGreen, CornerRadii.EMPTY, Insets.EMPTY)));
+        textArea.setStyle("-fx-control-inner-background: rgb(" + red + "," + green + "," + blue + ");");
+    }
 
-            int userSelection = fileChooser.showSaveDialog(frame);
-
-            if (userSelection == JFileChooser.APPROVE_OPTION) {
-                File fileToSave = fileChooser.getSelectedFile();
-                try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave))) {
-                    writer.write(textArea.getText());
-                    writer.newLine();
-                    JOptionPane.showMessageDialog(frame, "Text saved to:\n" + fileToSave.getAbsolutePath());
-                } catch (FileNotFoundException fnfe) {
-                    JOptionPane.showMessageDialog(frame, "File not found: " + fnfe.getMessage());
-                } catch (IOException ioe) {
-                    JOptionPane.showMessageDialog(frame, "Error writing to file: " + ioe.getMessage());
-                }
-            }
-        });
-
-        btnColor.addActionListener(e -> {
-            Random rand = new Random();
-            int green = 100 + rand.nextInt(156);
-            int red = rand.nextInt(80);
-            int blue = rand.nextInt(80);
-            Color randomGreen = new Color(red, green, blue);
-
-            frame.getContentPane().setBackground(randomGreen);
-            textArea.setBackground(randomGreen);
-            textArea.setOpaque(true);
-        });
-
-        btnExit.addActionListener(e -> System.exit(0));
-
-        frame.add(buttonPanel, BorderLayout.NORTH);
-        frame.add(scrollPane, BorderLayout.CENTER);
-
-        frame.setVisible(true);
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }
+
